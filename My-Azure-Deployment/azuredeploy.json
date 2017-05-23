@@ -2,7 +2,7 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-      "ps1Type": {
+      "PrintServersType": {
           "type": "string",
           "defaultValue": "Standard_LRS",
           "allowedValues": [
@@ -13,18 +13,18 @@
               "Premium_LRS"
           ]
       },
-      "PS1Name": {
+      "PrintServerName": {
           "type": "string",
           "minLength": 1
       },
-      "PS1AdminUserName": {
+      "PrintServerAdminUserName": {
           "type": "string",
           "minLength": 1
       },
-      "PS1AdminPassword": {
+      "PrintServerAdminPassword": {
           "type": "securestring"
       },
-      "PS1WindowsOSVersion": {
+      "PrintServerWindowsOSVersion": {
           "type": "string",
           "defaultValue": "2012-R2-Datacenter",
           "allowedValues": [
@@ -33,237 +33,149 @@
               "2012-R2-Datacenter",
               "Windows-Server-Technical-Preview"
           ]
-      },
-      "PS2Name": {
-          "type": "string",
-          "minLength": 1
-      },
-      "PS2AdminUserName": {
-          "type": "string",
-          "minLength": 1
-      },
-      "PS2AdminPassword": {
-          "type": "securestring"
-      },
-      "PS2WindowsOSVersion": {
-          "type": "string",
-          "defaultValue": "2012-R2-Datacenter",
-          "allowedValues": [
-              "2008-R2-SP1",
-              "2012-Datacenter",
-              "2012-R2-Datacenter",
-              "Windows-Server-Technical-Preview"
-          ]
-      }},
+      }
+  },
   "variables": {
-      "ps1Name": "[concat('ps1', uniqueString(resourceGroup().id))]",
-      "vnet01Prefix": "10.0.0.0/16",
-      "vnet01Subnet1Name": "Subnet-1",
-      "vnet01Subnet1Prefix": "10.0.0.0/24",
-      "vnet01Subnet2Name": "Subnet-2",
-      "vnet01Subnet2Prefix": "10.0.1.0/24",
-      "PS1ImagePublisher": "MicrosoftWindowsServer",
-      "PS1ImageOffer": "WindowsServer",
-      "PS1OSDiskName": "PS1OSDisk",
-      "PS1VmSize": "Standard_D2_v2",
-      "PS1VnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'vnet01')]",
-      "PS1SubnetRef": "[concat(variables('PS1VnetID'), '/subnets/', variables('vnet01Subnet1Name'))]",
-      "PS1StorageAccountContainerName": "vhds",
-      "PS1NicName": "[concat(parameters('PS1Name'), 'NetworkInterface')]",
-      "PS2ImagePublisher": "MicrosoftWindowsServer",
-      "PS2ImageOffer": "WindowsServer",
-      "PS2OSDiskName": "PS2OSDisk",
-      "PS2VmSize": "Standard_D2_v2",
-      "PS2VnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'vnet01')]",
-      "PS2SubnetRef": "[concat(variables('PS2VnetID'), '/subnets/', variables('vnet01Subnet1Name'))]",
-      "PS2StorageAccountContainerName": "vhds",
-      "PS2NicName": "[concat(parameters('PS2Name'), 'NetworkInterface')]"},
+      "PrintServersName": "[concat('print', uniqueString(resourceGroup().id))]",
+      "PrintVnetPrefix": "10.0.0.0/16",
+      "PrintVnetSubnet1Name": "Subnet-1",
+      "PrintVnetSubnet1Prefix": "10.0.0.0/24",
+      "PrintVnetSubnet2Name": "Subnet-2",
+      "PrintVnetSubnet2Prefix": "10.0.1.0/24",
+      "PrintServerImagePublisher": "MicrosoftWindowsServer",
+      "PrintServerImageOffer": "WindowsServer",
+      "PrintServerOSDiskName": "PrintServerOSDisk",
+      "PrintServerVmSize": "Standard_D2_v2",
+      "PrintServerVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'PrintVnet')]",
+      "PrintServerSubnetRef": "[concat(variables('PrintServerVnetID'), '/subnets/', variables('PrintVnetSubnet1Name'))]",
+      "PrintServerStorageAccountContainerName": "vhds",
+      "PrintServerNicName": "[concat(parameters('PrintServerName'), 'NetworkInterface')]"
+
+},
   "resources": [
       {
-          "name": "[variables('ps1Name')]",
+          "name": "[variables('PrintServersName')]",
           "type": "Microsoft.Storage/storageAccounts",
           "location": "[resourceGroup().location]",
           "apiVersion": "2015-06-15",
           "dependsOn": [ ],
           "tags": {
-              "displayName": "ps1"
+              "displayName": "PrintServers"
           },
           "properties": {
-              "accountType": "[parameters('ps1Type')]"
+              "accountType": "[parameters('PrintServersType')]"
           }
       },
       {
-          "name": "vnet01",
+          "name": "PrintVnet",
           "type": "Microsoft.Network/virtualNetworks",
           "location": "[resourceGroup().location]",
           "apiVersion": "2016-03-30",
           "dependsOn": [ ],
           "tags": {
-              "displayName": "vnet01"
+              "displayName": "PrintVnet"
           },
           "properties": {
               "addressSpace": {
                   "addressPrefixes": [
-                      "[variables('vnet01Prefix')]"
+                      "[variables('PrintVnetPrefix')]"
                   ]
               },
               "subnets": [
                   {
-                      "name": "[variables('vnet01Subnet1Name')]",
+                      "name": "[variables('PrintVnetSubnet1Name')]",
                       "properties": {
-                          "addressPrefix": "[variables('vnet01Subnet1Prefix')]"
+                          "addressPrefix": "[variables('PrintVnetSubnet1Prefix')]"
                       }
                   },
                   {
-                      "name": "[variables('vnet01Subnet2Name')]",
+                      "name": "[variables('PrintVnetSubnet2Name')]",
                       "properties": {
-                          "addressPrefix": "[variables('vnet01Subnet2Prefix')]"
+                          "addressPrefix": "[variables('PrintVnetSubnet2Prefix')]"
                       }
                   }
               ]
           }
       },
-      {
-          "name": "[variables('PS1NicName')]",
-          "type": "Microsoft.Network/networkInterfaces",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2016-03-30",
-          "dependsOn": [
-              "[resourceId('Microsoft.Network/virtualNetworks', 'vnet01')]"
-          ],
-          "tags": {
-              "displayName": "PS1Nic"
-          },
-          "properties": {
-              "ipConfigurations": [
-                  {
-                      "name": "ipconfig1",
-                      "properties": {
-                          "privateIPAllocationMethod": "Dynamic",
-                          "subnet": {
-                              "id": "[variables('PS1SubnetRef')]"
-                          }
-                      }
-                  }
-              ]
-          }
+    {
+      "name": "[concat('PrintServerNic', copyIndex(1))]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'PrintVnet')]"
+      ],
+      "tags": {
+        "displayName": "PrintServerNic"
       },
-      {
-          "name": "[parameters('PS1Name')]",
-          "type": "Microsoft.Compute/virtualMachines",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2015-06-15",
-          "dependsOn": [
-              "[resourceId('Microsoft.Storage/storageAccounts', variables('ps1Name'))]",
-              "[resourceId('Microsoft.Network/networkInterfaces', variables('PS1NicName'))]"
-          ],
-          "tags": {
-              "displayName": "PS1"
-          },
-          "properties": {
-              "hardwareProfile": {
-                  "vmSize": "[variables('PS1VmSize')]"
-              },
-              "osProfile": {
-                  "computerName": "[parameters('PS1Name')]",
-                  "adminUsername": "[parameters('PS1AdminUsername')]",
-                  "adminPassword": "[parameters('PS1AdminPassword')]"
-              },
-              "storageProfile": {
-                  "imageReference": {
-                      "publisher": "[variables('PS1ImagePublisher')]",
-                      "offer": "[variables('PS1ImageOffer')]",
-                      "sku": "[parameters('PS1WindowsOSVersion')]",
-                      "version": "latest"
-                  },
-                  "osDisk": {
-                      "name": "PS1OSDisk",
-                      "vhd": {
-                          "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('ps1Name')), '2016-01-01').primaryEndpoints.blob, variables('PS1StorageAccountContainerName'), '/', variables('PS1OSDiskName'), '.vhd')]"
-                      },
-                      "caching": "ReadWrite",
-                      "createOption": "FromImage"
-                  }
-              },
-              "networkProfile": {
-                  "networkInterfaces": [
-                      {
-                          "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('PS1NicName'))]"
-                      }
-                  ]
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('PrintServerSubnetRef')]"
               }
+            }
           }
+        ]
       },
-      {
-          "name": "[variables('PS2NicName')]",
-          "type": "Microsoft.Network/networkInterfaces",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2016-03-30",
-          "dependsOn": [
-              "[resourceId('Microsoft.Network/virtualNetworks', 'vnet01')]"
-          ],
-          "tags": {
-              "displayName": "PS2Nic"
-          },
-          "properties": {
-              "ipConfigurations": [
-                  {
-                      "name": "ipconfig1",
-                      "properties": {
-                          "privateIPAllocationMethod": "Dynamic",
-                          "subnet": {
-                              "id": "[variables('PS2SubnetRef')]"
-                          }
-                      }
-                  }
-              ]
-          }
+      "copy": {
+        "name": "niccopy",
+        "count": 3
+      }
+    },
+    {
+      "name": "[concat(parameters('PrintServerName'), copyIndex(1))]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('PrintServersName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', concat('PrintServerNic', copyIndex(1)))]"
+      ],
+      "tags": {
+        "displayName": "PrintServer"
       },
-      {
-          "name": "[parameters('PS2Name')]",
-          "type": "Microsoft.Compute/virtualMachines",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2015-06-15",
-          "dependsOn": [
-              "[resourceId('Microsoft.Storage/storageAccounts', variables('ps1Name'))]",
-              "[resourceId('Microsoft.Network/networkInterfaces', variables('PS2NicName'))]"
-          ],
-          "tags": {
-              "displayName": "PS2"
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('PrintServerVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('PrintServerName')]",
+          "adminUsername": "[parameters('PrintServerAdminUsername')]",
+          "adminPassword": "[parameters('PrintServerAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('PrintServerImagePublisher')]",
+            "offer": "[variables('PrintServerImageOffer')]",
+            "sku": "[parameters('PrintServerWindowsOSVersion')]",
+            "version": "latest"
           },
-          "properties": {
-              "hardwareProfile": {
-                  "vmSize": "[variables('PS2VmSize')]"
-              },
-              "osProfile": {
-                  "computerName": "[parameters('PS2Name')]",
-                  "adminUsername": "[parameters('PS2AdminUsername')]",
-                  "adminPassword": "[parameters('PS2AdminPassword')]"
-              },
-              "storageProfile": {
-                  "imageReference": {
-                      "publisher": "[variables('PS2ImagePublisher')]",
-                      "offer": "[variables('PS2ImageOffer')]",
-                      "sku": "[parameters('PS2WindowsOSVersion')]",
-                      "version": "latest"
-                  },
-                  "osDisk": {
-                      "name": "PS2OSDisk",
-                      "vhd": {
-                          "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('ps1Name')), '2016-01-01').primaryEndpoints.blob, variables('PS2StorageAccountContainerName'), '/', variables('PS2OSDiskName'), '.vhd')]"
-                      },
-                      "caching": "ReadWrite",
-                      "createOption": "FromImage"
-                  }
-              },
-              "networkProfile": {
-                  "networkInterfaces": [
-                      {
-                          "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('PS2NicName'))]"
-                      }
-                  ]
-              }
+          "osDisk": {
+            "name": "[concat('PrintServerOSDisk', copyIndex(1))]",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('PrintServersName')), '2016-01-01').primaryEndpoints.blob, variables('PrintServerStorageAccountContainerName'), '/', variables('PrintServerOSDiskName'), copyIndex(1), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
           }
-      }],
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('PrintServerNic', copyIndex(1)))]"
+            }
+          ]
+        }
+      },
+      "copy": {
+        "name": "vmcopy",
+        "count": 3
+      }
+    }
+      ],
   "outputs": {}
 }
