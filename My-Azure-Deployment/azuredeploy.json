@@ -38,7 +38,18 @@
         "2012-R2-Datacenter",
         "Windows-Server-Technical-Preview"
       ]
-    }
+    },
+      "psdiagType": {
+          "type": "string",
+          "defaultValue": "Standard_LRS",
+          "allowedValues": [
+              "Standard_LRS",
+              "Standard_ZRS",
+              "Standard_GRS",
+              "Standard_RAGRS",
+              "Premium_LRS"
+          ]
+      }
   },
   "variables": {
       "PrintServersName": "[concat('print', uniqueString(resourceGroup().id))]",
@@ -54,7 +65,9 @@
       "PrintServerVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'PrintVnet')]",
       "PrintServerSubnetRef": "[concat(variables('PrintServerVnetID'), '/subnets/', variables('PrintVnetSubnet1Name'))]",
       "PrintServerStorageAccountContainerName": "vhds",
-      "PrintServerNicName": "[concat(parameters('PrintServerName'), 'NetworkInterface')]"
+      "PrintServerNicName": "[concat(parameters('PrintServerName'), 'NetworkInterface')]",
+      "psdiagName": "[concat('psdiag', uniqueString(resourceGroup().id))]",
+      "wadMetricsResourceId": "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('PrintServerName')))]"
 
 },
   "resources": [
@@ -179,8 +192,316 @@
       "copy": {
         "name": "vmcopy",
         "count": "[parameters('PrintServerCount')]"
+      },
+        "resources": [
+            {
+                "name": "Microsoft.Insights.VMDiagnosticsSettings",
+                "type": "extensions",
+                "location": "[resourceGroup().location]",
+                "apiVersion": "2016-03-30",
+                "dependsOn": [
+                    "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('PrintServerName'), copyIndex(1)))]"
+                ],
+                "tags": {
+                    "displayName": "psdiag"
+                },
+                "properties": {
+                    "publisher": "Microsoft.Azure.Diagnostics",
+                    "type": "IaaSDiagnostics",
+                    "typeHandlerVersion": "1.5",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {
+                        "WadCfg": {
+                            "DiagnosticMonitorConfiguration": {
+                                "overallQuotaInMB": "4096",
+                                "DiagnosticInfrastructureLogs": {
+                                    "scheduledTransferLogLevelFilter": "Error"
+                                },
+                                "WindowsEventLog": {
+                                    "scheduledTransferPeriod": "PT1M",
+                                    "DataSource": [
+                                        {
+                                            "name": "Application!*[System[(Level = 1) or (Level = 2)]]"
+                                        },
+                                        {
+                                            "name": "Security!*[System[(Level = 1 or Level = 2)]]"
+                                        },
+                                        {
+                                            "name": "System!*[System[(Level = 1 or Level = 2)]]"
+                                        }
+                                    ]
+                                },
+                                "PerformanceCounters": {
+                                    "scheduledTransferPeriod": "PT1M",
+                                    "PerformanceCounterConfiguration": [
+                                        {
+                                            "counterSpecifier": "\\Processor(_Total)\\% Processor Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "CPU utilization",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Processor(_Total)\\% Privileged Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "CPU privileged time",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Processor(_Total)\\% User Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "CPU user time",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Processor Information(_Total)\\Processor Frequency",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Count",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "CPU frequency",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\System\\Processes",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Count",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Processes",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Process(_Total)\\Thread Count",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Count",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Threads",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Process(_Total)\\Handle Count",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Count",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Handles",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Memory\\% Committed Bytes In Use",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Memory usage",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Memory\\Available Bytes",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Bytes",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Memory available",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Memory\\Committed Bytes",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Bytes",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Memory committed",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\Memory\\Commit Limit",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Bytes",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Memory commit limit",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\% Disk Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk active time",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\% Disk Read Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk active read time",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\% Disk Write Time",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk active write time",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Transfers/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "CountPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk operations",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Reads/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "CountPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk read operations",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Writes/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "CountPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk write operations",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Bytes/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "BytesPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk speed",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "BytesPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk read speed",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec",
+                                            "sampleRate": "PT15S",
+                                            "unit": "BytesPerSecond",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk write speed",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "counterSpecifier": "\\LogicalDisk(_Total)\\% Free Space",
+                                            "sampleRate": "PT15S",
+                                            "unit": "Percent",
+                                            "annotation": [
+                                                {
+                                                    "displayName": "Disk free space (percentage)",
+                                                    "locale": "en-us"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "Metrics": {
+                                    "resourceId": "[variables('wadMetricsResourceId')]",
+                                    "MetricAggregation": [
+                                        {
+                                            "scheduledTransferPeriod": "PT1H"
+                                        },
+                                        {
+                                            "scheduledTransferPeriod": "PT1M"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "protectedSettings": {
+                        "storageAccountName": "[variables('psdiagName')]",
+                        "storageAccountKey": "[listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('psdiagName')), '2016-01-01').keys[0].value]"
+                    }
+                }
+            }
+        ]
+    },
+      {
+          "name": "[variables('psdiagName')]",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "psdiag"
+          },
+          "properties": {
+              "accountType": "[parameters('psdiagType')]"
+          }
       }
-    }
       ],
   "outputs": {}
 }
