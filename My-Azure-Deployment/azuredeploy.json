@@ -187,6 +187,9 @@
               "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('PrintServerNicName'), copyIndex(1)))]"
             }
           ]
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('PrintServerName'))]"
         }
       },
       "copy": {
@@ -203,7 +206,7 @@
                     "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('PrintServerName'), copyIndex(1)))]"
                 ],
                 "tags": {
-                    "displayName": "psdiag"
+                    "displayName": "PrintServerDiagnostics"
                 },
                 "properties": {
                     "publisher": "Microsoft.Azure.Diagnostics",
@@ -496,11 +499,26 @@
           "apiVersion": "2015-06-15",
           "dependsOn": [ ],
           "tags": {
-              "displayName": "psdiag"
+              "displayName": "PrintServerDiagnosticsStorage"
           },
           "properties": {
               "accountType": "[parameters('psdiagType')]"
           }
+      },
+      {
+          "name": "[parameters('PrintServerName')]",
+          "type": "Microsoft.Compute/availabilitySets",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [ ],
+          "tags": {
+              "displayName": "PrintServersAvailabilitySet"
+          },
+        "properties": {
+          "platformUpdateDomainCount": "[parameters('PrintServerCount')]",
+          "platformFaultDomainCount":  "[parameters('PrintServerCount')]"
+          
+        }
       }
       ],
   "outputs": {}
