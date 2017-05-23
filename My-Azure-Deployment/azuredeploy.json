@@ -2,38 +2,43 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-      "PrintServersType": {
-          "type": "string",
-          "defaultValue": "Standard_LRS",
-          "allowedValues": [
-              "Standard_LRS",
-              "Standard_ZRS",
-              "Standard_GRS",
-              "Standard_RAGRS",
-              "Premium_LRS"
-          ]
-      },
-      "PrintServerName": {
-          "type": "string",
-          "minLength": 1
-      },
-      "PrintServerAdminUserName": {
-          "type": "string",
-          "minLength": 1
-      },
-      "PrintServerAdminPassword": {
-          "type": "securestring"
-      },
-      "PrintServerWindowsOSVersion": {
-          "type": "string",
-          "defaultValue": "2012-R2-Datacenter",
-          "allowedValues": [
-              "2008-R2-SP1",
-              "2012-Datacenter",
-              "2012-R2-Datacenter",
-              "Windows-Server-Technical-Preview"
-          ]
-      }
+    "PrintServersType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "PrintServerName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "PrintServerCount": {
+      "type": "int",
+      "minValue": 1,
+      "maxValue": 6
+    },
+    "PrintServerAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "PrintServerAdminPassword": {
+      "type": "securestring"
+    },
+    "PrintServerWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    }
   },
   "variables": {
       "PrintServersName": "[concat('print', uniqueString(resourceGroup().id))]",
@@ -123,7 +128,7 @@
       },
       "copy": {
         "name": "niccopy",
-        "count": 2
+        "count": "[parameters('PrintServerCount')]"
       }
     },
     {
@@ -173,7 +178,7 @@
       },
       "copy": {
         "name": "vmcopy",
-        "count": 2
+        "count": "[parameters('PrintServerCount')]"
       }
     }
       ],

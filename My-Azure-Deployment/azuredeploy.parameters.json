@@ -8,6 +8,9 @@
         },
         "PrintServerAdminUserName": {
             "value": "ian"
+        },
+        "PrintServerCount": {
+            "value": 4
         }
     }
 }
